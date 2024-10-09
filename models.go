@@ -24,9 +24,11 @@ type PaymentReq struct {
 }
 
 type PaymentResp struct {
-	InvoiceId string `json:"invoice_id"`
-	Link      string `json:"link"`
-	ReqBody   []byte `json:"req_body"`
+	InvoiceId    string `json:"invoice_id"`
+	Link         string `json:"link"`
+	ReqBody      []byte `json:"req_body"`
+	ErrorCode    int    `json:"error_code"`
+	ErrorMessage string `json:"error_message"`
 }
 
 type Response struct {

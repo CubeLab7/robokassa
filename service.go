@@ -103,10 +103,53 @@ func (s *Service) CreatePayment(request PaymentReq) (*PaymentResp, error) {
 	}
 
 	return &PaymentResp{
-		InvoiceId: response.InvoiceID,
-		Link:      fmt.Sprintf(s.config.URI+getPaymentUrl, response.InvoiceID),
-		ReqBody:   respBody,
+		InvoiceId:    response.InvoiceID,
+		Link:         fmt.Sprintf(s.config.URI+getPaymentUrl, response.InvoiceID),
+		ReqBody:      respBody,
+		ErrorCode:    response.ErrorCode,
+		ErrorMessage: s.IdentifyErrCode(response.ErrorCode),
 	}, nil
+}
+
+func (s *Service) IdentifyErrCode(code int) string {
+	switch code {
+	case 0:
+		return ""
+	case 25:
+		return "магазин не активирован"
+	case 26:
+		return "Магазин не найден"
+	case 29:
+		return "Неверный параметр SignatureValue"
+	case 30:
+		return "Неверный параметр счёта"
+	case 31:
+		return "Неверная сумма платежа"
+	case 33:
+		return "Время отведённое на оплату счёта истекло"
+	case 34:
+		return "Услуга рекуррентных платежей не разрешена магазину"
+	case 35:
+		return "Неверные параметры для инициализации рекуррентного платежа"
+	case 40:
+		return "Повторная оплата счета с тем же номером невозможна"
+	case 41:
+		return "Ошибка на старте операции"
+	case 51:
+		return "Срок оплаты счета истек"
+	case 52:
+		return "Попытка повторной оплаты счета"
+	case 53:
+		return "Счет не найден"
+	case 64:
+		return "Функционал холдирования средств запрещен для магазина"
+	case 65:
+		return "Некорректные параметры для холдирования"
+	case 20, 28, 21, 32, 22, 36, 23, 37, 24, 43, 27, 500:
+		return "Внутренние ошибки сервиса"
+	default:
+		return "unknown code"
+	}
 }
 
 func (s *Service) VerifySignature(receivedSignature string, params SignatureParams) bool {
