@@ -17,13 +17,11 @@ type SendParams struct {
 }
 
 type PaymentReq struct {
-	InvId          int64  `json:"InvId"`
-	MerchantLogin  string `json:"MerchantLogin"`
-	OutSum         string `json:"OutSum"`
-	Description    string `json:"Description"`
-	SignatureValue string `json:"SignatureValue"`
-	IncCurrLabel   string `json:"IncCurrLabel,omitempty"`
-	PaymentMethods string `json:"PaymentMethods,omitempty"`
+	InvId       int64     `json:"InvId"`
+	OutSum      int64     `json:"OutSum"`
+	IsTest      bool      `json:"IsTest,omitempty"`
+	Description string    `json:"Description"`
+	Receipt     []Receipt `json:"receipt,omitempty"`
 }
 
 type Response struct {
@@ -80,4 +78,15 @@ type UserField struct {
 type Field struct {
 	Name  string `xml:"Name"`
 	Value string `xml:"Value"`
+}
+
+type Receipt struct {
+	Items []Item `json:"items"`
+}
+
+type Item struct {
+	Name     string `json:"name"`
+	Quantity int    `json:"quantity"`
+	Sum      int    `json:"sum"`
+	Tax      string `json:"tax"`
 }

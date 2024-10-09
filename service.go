@@ -58,8 +58,35 @@ func calculateSHA512(inputs ...string) string {
 	return hex.EncodeToString(hash.Sum(nil))
 }
 
-func (s *Service) GetPaymentUrl(data map[string]string) (paymentUrl string, invoiceId string, err error) {
+func urlEncode(input string) string {
+	return url.QueryEscape(input)
+}
+
+func (s *Service) CreatePayment(request PaymentReq) (paymentUrl string, invoiceId string, err error) {
 	var response Response
+
+	// Преобразование структуры в JSON-строку
+	jsonData, err := json.Marshal(request.Receipt)
+	if err != nil {
+		return
+	}
+
+	// Преобразование JSON-данных в строку
+	receipt := urlEncode(string(jsonData))
+
+	value := calculateSHA512(s.config.Login, fmt.Sprint(request.OutSum), fmt.Sprint(request.InvId), receipt, s.config.Pass1)
+
+	data := map[string]string{
+		"MerchantLogin":  s.config.Login,
+		"OutSum":         fmt.Sprint(request.OutSum),
+		"invoiceId":      fmt.Sprint(request.InvId),
+		"Receipt":        receipt,
+		"SignatureValue": value,
+	}
+
+	if request.IsTest {
+		data["IsTest"] = "1"
+	}
 
 	reqData := buildQueryString(data)
 
