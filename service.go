@@ -84,7 +84,7 @@ func (s *Service) CreatePayment(request PaymentReq) (paymentUrl string, invoiceI
 		"SignatureValue": value,
 	}
 
-	if request.IsTest {
+	if s.config.IsTest {
 		data["IsTest"] = "1"
 	}
 

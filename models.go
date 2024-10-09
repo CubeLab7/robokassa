@@ -19,7 +19,6 @@ type SendParams struct {
 type PaymentReq struct {
 	InvId       int64     `json:"InvId"`
 	OutSum      int64     `json:"OutSum"`
-	IsTest      bool      `json:"IsTest,omitempty"`
 	Description string    `json:"Description"`
 	Receipt     []Receipt `json:"receipt,omitempty"`
 }
