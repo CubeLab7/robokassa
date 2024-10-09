@@ -88,6 +88,8 @@ func (s *Service) CreatePayment(request PaymentReq) (*PaymentResp, error) {
 		data["IsTest"] = "1"
 	}
 
+	log.Println("data = ", data)
+
 	reqData := buildQueryString(data)
 
 	inputs := SendParams{
@@ -215,8 +217,6 @@ func sendRequest(config *Config, inputs *SendParams) (respBody []byte, err error
 
 	finalUrl := baseURL.String()
 
-	log.Println("finalUrl = ", finalUrl)
-
 	req, err := http.NewRequest(inputs.HttpMethod, finalUrl, bytes.NewBuffer([]byte(inputs.Data)))
 	if err != nil {
 		return respBody, fmt.Errorf("can't create request! Err: %s", err)
@@ -247,8 +247,6 @@ func sendRequest(config *Config, inputs *SendParams) (respBody []byte, err error
 	if resp.StatusCode == http.StatusInternalServerError {
 		return respBody, fmt.Errorf("error: %v", string(respBody))
 	}
-
-	log.Println("resp = ", string(respBody))
 
 	if err = json.Unmarshal(respBody, &inputs.Response); err != nil {
 		return respBody, fmt.Errorf("can't unmarshall response: '%v'. Err: %w", string(respBody), err)
