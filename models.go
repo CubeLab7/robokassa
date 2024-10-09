@@ -17,10 +17,10 @@ type SendParams struct {
 }
 
 type PaymentReq struct {
-	InvId       int64     `json:"InvId"`
-	OutSum      int64     `json:"OutSum"`
-	Description string    `json:"Description"`
-	Receipt     []Receipt `json:"receipt,omitempty"`
+	InvId       int64   `json:"InvId"`
+	OutSum      int64   `json:"OutSum"`
+	Description string  `json:"Description"`
+	Receipt     Receipt `json:"receipt,omitempty"`
 }
 
 type Response struct {
