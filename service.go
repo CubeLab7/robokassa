@@ -2,7 +2,7 @@ package robokassa
 
 import (
 	"bytes"
-	"crypto/sha512"
+	"crypto/md5"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -41,7 +41,7 @@ func buildQueryString(params map[string]string) string {
 	return v.Encode()
 }
 
-func calculateSHA512(inputs ...string) string {
+func calculateHash(inputs ...string) string {
 	var data string
 
 	for ind, input := range inputs {
@@ -53,7 +53,7 @@ func calculateSHA512(inputs ...string) string {
 		data += fmt.Sprintf(":%v", input)
 	}
 
-	hash := sha512.New()
+	hash := md5.New()
 	hash.Write([]byte(data))
 	return hex.EncodeToString(hash.Sum(nil))
 }
@@ -74,7 +74,7 @@ func (s *Service) CreatePayment(request PaymentReq) (*PaymentResp, error) {
 	// Преобразование JSON-данных в строку
 	receipt := urlEncode(string(jsonData))
 
-	value := calculateSHA512(s.config.Login, fmt.Sprint(request.OutSum), fmt.Sprint(request.InvId), receipt, s.config.Pass1)
+	value := calculateHash(s.config.Login, fmt.Sprint(request.OutSum), fmt.Sprint(request.InvId), receipt, s.config.Pass1)
 
 	data := map[string]string{
 		"MerchantLogin":  s.config.Login,
@@ -157,7 +157,7 @@ func (s *Service) IdentifyErrCode(code int) string {
 func (s *Service) VerifySignature(receivedSignature string, params SignatureParams) bool {
 	switch params.Method {
 	case callback:
-		expectedSignature := calculateSHA512(fmt.Sprint(params.OutSum), fmt.Sprint(params.InvId), s.config.Pass2)
+		expectedSignature := calculateHash(fmt.Sprint(params.OutSum), fmt.Sprint(params.InvId), s.config.Pass2)
 
 		if expectedSignature == receivedSignature {
 			return true
@@ -171,7 +171,7 @@ func (s *Service) GetPaymentInfo(paymentId int64) (*PaymentInfo, error) {
 	data := map[string]string{
 		"MerchantLogin": s.config.Login,
 		"InvoiceID":     fmt.Sprint(paymentId),
-		"Signature":     calculateSHA512(s.config.Login, fmt.Sprint(paymentId), s.config.Pass2),
+		"Signature":     calculateHash(s.config.Login, fmt.Sprint(paymentId), s.config.Pass2),
 	}
 
 	reqData := buildQueryString(data)
