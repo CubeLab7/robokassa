@@ -62,13 +62,13 @@ func urlEncode(input string) string {
 	return url.QueryEscape(input)
 }
 
-func (s *Service) CreatePayment(request PaymentReq) (paymentUrl string, invoiceId string, err error) {
+func (s *Service) CreatePayment(request PaymentReq) (*PaymentResp, error) {
 	var response Response
 
 	// Преобразование структуры в JSON-строку
 	jsonData, err := json.Marshal(request.Receipt)
 	if err != nil {
-		return
+		return nil, fmt.Errorf("cannot marshal struct -> string: %w", err)
 	}
 
 	// Преобразование JSON-данных в строку
@@ -97,11 +97,16 @@ func (s *Service) CreatePayment(request PaymentReq) (paymentUrl string, invoiceI
 		Data:       reqData,
 	}
 
-	if _, err = sendRequest(s.config, &inputs); err != nil {
-		return
+	var respBody []byte
+	if respBody, err = sendRequest(s.config, &inputs); err != nil {
+		return nil, fmt.Errorf("sendRequest: %w", err)
 	}
 
-	return fmt.Sprintf(getPaymentUrl, response.InvoiceID), response.InvoiceID, nil
+	return &PaymentResp{
+		InvoiceId: response.InvoiceID,
+		Link:      fmt.Sprintf(s.config.URI+getPaymentUrl, response.InvoiceID),
+		ReqBody:   respBody,
+	}, nil
 }
 
 func (s *Service) VerifySignature(receivedSignature string, params SignatureParams) bool {
