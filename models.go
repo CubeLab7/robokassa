@@ -86,6 +86,6 @@ type Receipt struct {
 type Item struct {
 	Name     string `json:"name"`
 	Quantity int    `json:"quantity"`
-	Sum      int    `json:"sum"`
+	Sum      int64  `json:"sum"`
 	Tax      string `json:"tax"`
 }
