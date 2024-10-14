@@ -8,6 +8,7 @@ import (
 
 type SendParams struct {
 	HttpCode    int
+	IsXml       bool
 	Path        string
 	HttpMethod  string
 	Data        string

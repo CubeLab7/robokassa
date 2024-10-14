@@ -181,6 +181,7 @@ func (s *Service) GetPaymentInfo(paymentId int64) (*PaymentInfo, []byte, error) 
 	inputs := SendParams{
 		Path:        getPaymentInfo,
 		HttpMethod:  http.MethodGet,
+		IsXml:       true,
 		Response:    &response,
 		QueryParams: data,
 	}
@@ -280,8 +281,14 @@ func sendRequest(config *Config, inputs *SendParams) (respBody []byte, err error
 		return respBody, fmt.Errorf("error: %v", string(respBody))
 	}
 
-	if err = xml.Unmarshal(respBody, &inputs.Response); err != nil {
-		return respBody, fmt.Errorf("can't unmarshall response: '%v'. Err: %w", string(respBody), err)
+	if inputs.IsXml {
+		if err = xml.Unmarshal(respBody, &inputs.Response); err != nil {
+			return respBody, fmt.Errorf("can't unmarshall response: '%v'. Err: %w", string(respBody), err)
+		}
+	} else {
+		if err = json.Unmarshal(respBody, &inputs.Response); err != nil {
+			return respBody, fmt.Errorf("can't unmarshall response: '%v'. Err: %w", string(respBody), err)
+		}
 	}
 
 	return
