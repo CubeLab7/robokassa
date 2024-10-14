@@ -97,3 +97,10 @@ type Item struct {
 	Sum      int64  `json:"sum"`
 	Tax      string `json:"tax"`
 }
+
+type RecurrentPayment struct {
+	InvId         int64
+	PreviousInvId int64
+	OutSum        int64
+	Description   string
+}

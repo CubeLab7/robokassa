@@ -5,6 +5,7 @@ import (
 	"crypto/md5"
 	"encoding/hex"
 	"encoding/json"
+	"encoding/xml"
 	"fmt"
 	"io"
 	"log"
@@ -18,9 +19,10 @@ type Service struct {
 }
 
 const (
-	getInvoiceId   = "/Merchant/Indexjson.aspx"
-	getPaymentInfo = "/Merchant/WebService/Service.asmx/OpStateExt"
-	getPaymentUrl  = "/Merchant/Index/%s"
+	createPayment    = "/Merchant/Indexjson.aspx"
+	getPaymentInfo   = "/Merchant/WebService/Service.asmx/OpStateExt"
+	getPaymentUrl    = "/Merchant/Index/%s"
+	recurrentPayment = "/Merchant/Recurring"
 
 	callback = "callback"
 )
@@ -93,7 +95,7 @@ func (s *Service) CreatePayment(request PaymentReq) (*PaymentResp, error) {
 	reqData := buildQueryString(data)
 
 	inputs := SendParams{
-		Path:       getInvoiceId,
+		Path:       createPayment,
 		HttpMethod: http.MethodPost,
 		Response:   &response,
 		Data:       reqData,
@@ -167,11 +169,41 @@ func (s *Service) VerifySignature(receivedSignature string, params SignaturePara
 	return false
 }
 
-func (s *Service) GetPaymentInfo(paymentId int64) (*PaymentInfo, error) {
+func (s *Service) GetPaymentInfo(paymentId int64) (*PaymentInfo, []byte, error) {
 	data := map[string]string{
 		"MerchantLogin": s.config.Login,
 		"InvoiceID":     fmt.Sprint(paymentId),
 		"Signature":     calculateHash(s.config.Login, fmt.Sprint(paymentId), s.config.Pass2),
+	}
+
+	var response PaymentInfo
+
+	inputs := SendParams{
+		Path:        getPaymentInfo,
+		HttpMethod:  http.MethodGet,
+		Response:    &response,
+		QueryParams: data,
+	}
+
+	var (
+		respBody []byte
+		err      error
+	)
+
+	if respBody, err = sendRequest(s.config, &inputs); err != nil {
+		return nil, respBody, err
+	}
+
+	return &response, respBody, nil
+}
+
+func (s *Service) RecurrentPayment(request RecurrentPayment) (*PaymentInfo, error) {
+	data := map[string]string{
+		"MerchantLogin":     s.config.Login,
+		"InvoiceID":         fmt.Sprint(request.InvId),
+		"PreviousInvoiceID": fmt.Sprint(request.PreviousInvId),
+		"OutSum":            fmt.Sprint(request.OutSum),
+		"Signature":         calculateHash(s.config.Login, fmt.Sprint(request.OutSum), fmt.Sprint(request.InvId), s.config.Pass1),
 	}
 
 	reqData := buildQueryString(data)
@@ -179,8 +211,8 @@ func (s *Service) GetPaymentInfo(paymentId int64) (*PaymentInfo, error) {
 	var response PaymentInfo
 
 	inputs := SendParams{
-		Path:       getPaymentInfo,
-		HttpMethod: http.MethodGet,
+		Path:       recurrentPayment,
+		HttpMethod: http.MethodPost,
 		Response:   &response,
 		Data:       reqData,
 	}
@@ -248,7 +280,7 @@ func sendRequest(config *Config, inputs *SendParams) (respBody []byte, err error
 		return respBody, fmt.Errorf("error: %v", string(respBody))
 	}
 
-	if err = json.Unmarshal(respBody, &inputs.Response); err != nil {
+	if err = xml.Unmarshal(respBody, &inputs.Response); err != nil {
 		return respBody, fmt.Errorf("can't unmarshall response: '%v'. Err: %w", string(respBody), err)
 	}
 
