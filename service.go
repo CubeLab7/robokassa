@@ -11,6 +11,7 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"strings"
 	"time"
 )
 
@@ -86,6 +87,10 @@ func (s *Service) CreatePayment(request PaymentReq) (*PaymentResp, error) {
 		"SignatureValue": value,
 	}
 
+	if request.IsRecurrent {
+		data["Recurring"] = "true"
+	}
+
 	if s.config.IsTest {
 		data["IsTest"] = "1"
 	}
@@ -159,9 +164,9 @@ func (s *Service) IdentifyErrCode(code int) string {
 func (s *Service) VerifySignature(receivedSignature string, params SignatureParams) bool {
 	switch params.Method {
 	case callback:
-		expectedSignature := calculateHash(fmt.Sprint(params.OutSum), fmt.Sprint(params.InvId), s.config.Pass2)
+		expectedSignature := calculateHash(params.OutSum, fmt.Sprint(params.InvId), s.config.Pass2)
 
-		if expectedSignature == receivedSignature {
+		if expectedSignature == strings.ToLower(receivedSignature) {
 			return true
 		}
 	}

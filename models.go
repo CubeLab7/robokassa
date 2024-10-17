@@ -18,10 +18,11 @@ type SendParams struct {
 }
 
 type PaymentReq struct {
-	InvId       int64   `json:"InvId"`
-	OutSum      int64   `json:"OutSum"`
-	Description string  `json:"Description"`
-	Receipt     Receipt `json:"receipt,omitempty"`
+	InvId       int64
+	OutSum      int64
+	IsRecurrent bool
+	Description string
+	Receipt     Receipt
 }
 
 type PaymentResp struct {
@@ -40,7 +41,7 @@ type Response struct {
 
 type SignatureParams struct {
 	InvId  int64
-	OutSum float32
+	OutSum string
 	Method string
 }
 
