@@ -1,3 +1,3 @@
-module github.com/dwnGnL/robokassa
+module github.com/CubeLab7/robokassa
 
 go 1.18
