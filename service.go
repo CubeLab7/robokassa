@@ -81,6 +81,7 @@ func (s *Service) CreatePayment(request PaymentReq) (*PaymentResp, error) {
 
 	data := map[string]string{
 		"MerchantLogin":  s.config.Login,
+		"Culture":        "ru",
 		"OutSum":         fmt.Sprint(request.OutSum),
 		"invoiceId":      fmt.Sprint(request.InvId),
 		"Receipt":        receipt,
