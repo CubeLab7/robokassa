@@ -22,8 +22,16 @@ type PaymentReq struct {
 	OutSum      int64
 	IsRecurrent bool
 	Description string
+	PaymentType PaymentType
 	Receipt     Receipt
 }
+
+type PaymentType string
+
+const (
+	WithCard PaymentType = "with_card"
+	WithSBP  PaymentType = "with_sbp"
+)
 
 type PaymentResp struct {
 	InvoiceId    string `json:"invoice_id"`

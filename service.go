@@ -77,10 +77,27 @@ func (s *Service) CreatePayment(request PaymentReq) (*PaymentResp, error) {
 	// Преобразование JSON-данных в строку
 	receipt := urlEncode(string(jsonData))
 
-	value := calculateHash(s.config.Login, fmt.Sprint(request.OutSum), fmt.Sprint(request.InvId), receipt, s.config.Pass1)
+	var (
+		isTest bool
+		login  string
+		pass1  string
+	)
+
+	switch request.PaymentType {
+	case WithCard:
+		login = s.config.Shops.Main.Login
+		pass1 = s.config.Shops.Main.Pass1
+		isTest = s.config.Shops.Main.IsTest
+	case WithSBP:
+		login = s.config.Shops.SBP.Login
+		pass1 = s.config.Shops.SBP.Pass1
+		isTest = s.config.Shops.SBP.IsTest
+	}
+
+	value := calculateHash(login, fmt.Sprint(request.OutSum), fmt.Sprint(request.InvId), receipt, pass1)
 
 	data := map[string]string{
-		"MerchantLogin":  s.config.Login,
+		"MerchantLogin":  login,
 		"Culture":        "ru",
 		"OutSum":         fmt.Sprint(request.OutSum),
 		"invoiceId":      fmt.Sprint(request.InvId),
@@ -88,15 +105,15 @@ func (s *Service) CreatePayment(request PaymentReq) (*PaymentResp, error) {
 		"SignatureValue": value,
 	}
 
-	if request.IsRecurrent {
+	if request.PaymentType == WithCard && request.IsRecurrent {
 		data["Recurring"] = "true"
 	}
 
-	if s.config.IsTest {
+	if isTest {
 		data["IsTest"] = "1"
 	}
 
-	log.Println("data = ", data)
+	log.Printf("ReqData! PaymentType: %v, data = %v", request.PaymentType, data)
 
 	reqData := buildQueryString(data)
 
@@ -162,10 +179,19 @@ func (s *Service) IdentifyErrCode(code int) string {
 	}
 }
 
-func (s *Service) VerifySignature(receivedSignature string, params SignatureParams) bool {
+func (s *Service) VerifySignature(receivedSignature string, params SignatureParams, paymentType PaymentType) bool {
+	var password string
+
+	switch paymentType {
+	case WithCard:
+		password = s.config.Shops.Main.Pass2
+	case WithSBP:
+		password = s.config.Shops.SBP.Pass2
+	}
+
 	switch params.Method {
 	case callback:
-		expectedSignature := calculateHash(params.OutSum, fmt.Sprint(params.InvId), s.config.Pass2)
+		expectedSignature := calculateHash(params.OutSum, fmt.Sprint(params.InvId), password)
 
 		if expectedSignature == strings.ToLower(receivedSignature) {
 			return true
@@ -175,11 +201,22 @@ func (s *Service) VerifySignature(receivedSignature string, params SignaturePara
 	return false
 }
 
-func (s *Service) GetPaymentInfo(paymentId int64) (*PaymentInfo, []byte, error) {
+func (s *Service) GetPaymentInfo(paymentId int64, paymentType PaymentType) (*PaymentInfo, []byte, error) {
+	var login, pass2 string
+
+	switch paymentType {
+	case WithCard:
+		login = s.config.Shops.Main.Login
+		pass2 = s.config.Shops.Main.Pass2
+	case WithSBP:
+		login = s.config.Shops.SBP.Login
+		pass2 = s.config.Shops.SBP.Pass2
+	}
+
 	data := map[string]string{
-		"MerchantLogin": s.config.Login,
+		"MerchantLogin": login,
 		"InvoiceID":     fmt.Sprint(paymentId),
-		"Signature":     calculateHash(s.config.Login, fmt.Sprint(paymentId), s.config.Pass2),
+		"Signature":     calculateHash(login, fmt.Sprint(paymentId), pass2),
 	}
 
 	var response PaymentInfo
@@ -206,11 +243,11 @@ func (s *Service) GetPaymentInfo(paymentId int64) (*PaymentInfo, []byte, error) 
 
 func (s *Service) RecurrentPayment(request RecurrentPayment) (*PaymentInfo, error) {
 	data := map[string]string{
-		"MerchantLogin":     s.config.Login,
+		"MerchantLogin":     s.config.Shops.Main.Login,
 		"InvoiceID":         fmt.Sprint(request.InvId),
 		"PreviousInvoiceID": fmt.Sprint(request.PreviousInvId),
 		"OutSum":            fmt.Sprint(request.OutSum),
-		"Signature":         calculateHash(s.config.Login, fmt.Sprint(request.OutSum), fmt.Sprint(request.InvId), s.config.Pass1),
+		"Signature":         calculateHash(s.config.Shops.Main.Login, fmt.Sprint(request.OutSum), fmt.Sprint(request.InvId), s.config.Shops.Main.Pass1),
 	}
 
 	reqData := buildQueryString(data)
