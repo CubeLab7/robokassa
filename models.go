@@ -98,15 +98,20 @@ type Field struct {
 }
 
 type Receipt struct {
+	Sno   SnoType `json:"sno"`
 	Items []Item `json:"items"`
 }
 
 type Item struct {
-	Name     string `json:"name"`
-	Quantity int    `json:"quantity"`
-	Sum      int64  `json:"sum"`
-	Tax      string `json:"tax"`
+	Name     string  `json:"name"`
+	Quantity int     `json:"quantity"`
+	Sum      int64   `json:"sum"`
+	Tax      EnumTax `json:"tax"`
 }
+
+type EnumTax string
+
+type SnoType string
 
 type RecurrentPayment struct {
 	InvId         int64
