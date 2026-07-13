@@ -68,15 +68,6 @@ func urlEncode(input string) string {
 func (s *Service) CreatePayment(request PaymentReq) (*PaymentResp, error) {
 	var response Response
 
-	// Преобразование структуры в JSON-строку
-	jsonData, err := json.Marshal(request.Receipt)
-	if err != nil {
-		return nil, fmt.Errorf("cannot marshal struct -> string: %w", err)
-	}
-
-	// Преобразование JSON-данных в строку
-	receipt := urlEncode(string(jsonData))
-
 	var (
 		isTest bool
 		login  string
@@ -94,16 +85,30 @@ func (s *Service) CreatePayment(request PaymentReq) (*PaymentResp, error) {
 		isTest = s.config.Shops.SBP.IsTest
 	}
 
-	value := calculateHash(login, fmt.Sprint(request.OutSum), fmt.Sprint(request.InvId), receipt, pass1)
-
 	data := map[string]string{
-		"MerchantLogin":  login,
-		"Culture":        "ru",
-		"OutSum":         fmt.Sprint(request.OutSum),
-		"invoiceId":      fmt.Sprint(request.InvId),
-		"Receipt":        receipt,
-		"SignatureValue": value,
+		"MerchantLogin": login,
+		"Culture":       "ru",
+		"OutSum":        fmt.Sprint(request.OutSum),
+		"invoiceId":     fmt.Sprint(request.InvId),
 	}
+
+	// Receipt — необязательный параметр Robokassa: включается в тело и в подпись строго "при
+	// наличии" (docs.robokassa.ru/ru/pay-interface). При nil чек не передаём (магазин фискализирует
+	// сам). Раньше поле было value-структурой и zero-value Receipt всегда маршалился в data и
+	// SignatureValue → невалидный чек уходил в Robokassa даже когда чек не нужен.
+	signatureInputs := []string{login, fmt.Sprint(request.OutSum), fmt.Sprint(request.InvId)}
+	if request.Receipt != nil {
+		jsonData, err := json.Marshal(request.Receipt)
+		if err != nil {
+			return nil, fmt.Errorf("cannot marshal struct -> string: %w", err)
+		}
+		receipt := urlEncode(string(jsonData))
+		data["Receipt"] = receipt
+		signatureInputs = append(signatureInputs, receipt)
+	}
+	signatureInputs = append(signatureInputs, pass1)
+
+	data["SignatureValue"] = calculateHash(signatureInputs...)
 
 	if request.PaymentType == WithCard && request.IsRecurrent {
 		data["Recurring"] = "true"
@@ -124,8 +129,8 @@ func (s *Service) CreatePayment(request PaymentReq) (*PaymentResp, error) {
 		Data:       reqData,
 	}
 
-	var respBody []byte
-	if respBody, err = sendRequest(s.config, &inputs); err != nil {
+	respBody, err := sendRequest(s.config, &inputs)
+	if err != nil {
 		return nil, fmt.Errorf("sendRequest: %w", err)
 	}
 

@@ -23,7 +23,10 @@ type PaymentReq struct {
 	IsRecurrent bool
 	Description string
 	PaymentType PaymentType
-	Receipt     Receipt
+	// Receipt — фискальные данные (54-ФЗ). Необязательный параметр Robokassa: включается в тело
+	// запроса и в подпись строго "при наличии". nil — чек не передаётся (магазин фискализирует
+	// сам, режим "Самостоятельно"): раньше zero-value Receipt всё равно маршалился в подпись/запрос.
+	Receipt *Receipt
 }
 
 type PaymentType string
